@@ -634,6 +634,7 @@ class MainWidget(QWidget):
         # If the reset is finished, re-enable the UX
         if action_type == AUxEsptoolResetESP32.ACTION_ID:
             self.writeMessage("Reset complete...")
+            self.writeMessage("DONE: Firmware file copied to ESP32 device.\n")
             self.disable_interface(False)
 
         if action_type == AUxRp2UploadRp2.ACTION_ID:
@@ -851,7 +852,7 @@ class MainWidget(QWidget):
             return
         
         mpr = self.get_mpremote_session()
-        if mpr.is_connected():
+        if mpr is not None:
             try:
                 boardName = mpr.get_short_board_name()
                 if boardName is None:
@@ -1059,7 +1060,14 @@ class MainWidget(QWidget):
         else:
             portName = self.port_button.text()
 
-        return MPRemoteSession(portName)
+        mpr = MPRemoteSession(portName)
+
+        if mpr.validate_session():
+            self.writeMessage("MPRemote session validated.\n")
+            return mpr
+        else:
+            self.writeMessage("MPRemote session failed to validate.\n")
+            return None
 
     def do_upload_rp2(self, fwFile = None) -> None:
         """Upload the firmware to the RP2."""
@@ -1074,7 +1082,7 @@ class MainWidget(QWidget):
 
         # If we are able to use mpremote to enter bootloader mode, do so
         # Otherwise, prompt the user to press the correct button sequence to enter bootloader mode
-        if mpr.is_connected():
+        if mpr is not None:
             self.writeMessage("Able to automatically enter bootloader mode...\n")
             mpr.enter_bootloader()
             self.writeMessage("Entering bootloader mode...\n")

@@ -117,7 +117,7 @@ class MPRemoteSession:
         self.args.expr = [command]
         commands.do_exec(state=self.state, args=self.args)
     
-    def exec_command_with_output(self, command: str, timeout: Optional[float] = 3) -> str:
+    def exec_command_with_output(self, command: str, timeout: Optional[float] = 2) -> str:
 
         self.args.expr = [command]
         capture = StdoutCapture()
@@ -145,6 +145,23 @@ class MPRemoteSession:
 
         capture.stop()
         return capture.get_output()
+    
+    def validate_session(self) -> None:
+        # Ensure that we can ping the device by checking sys.implementation.name
+        # This is a good way to check if the device is connected and responsive
+        try:
+            if self.is_connected():
+                res = self.exec_command_with_output("import sys; print(sys.implementation.name)")
+                if res is None:
+                    return False
+                if res.strip() == "micropython":
+                    return True
+        except Exception as e:
+            #print("Error validating session:", e)
+            pass
+        
+        return False
+
     
     def eval_command(self, command: str) -> None:
         self.args.expr = self.args.eval = [command]
