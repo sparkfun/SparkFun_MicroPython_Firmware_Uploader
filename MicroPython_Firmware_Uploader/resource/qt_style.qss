@@ -1,0 +1,71 @@
+/* QWidget#MainWidget{
+    background-color: #3C656C; 
+} */
+
+QFrame#Frame2{
+    background-color: #4A7981; border: 0px;
+}
+
+/*For all widgets*/
+QWidget {
+    /* background-color: #2E2E2E;
+    color: #FFFFFF; */
+    font-size: 12px;
+    /* font-family: "Arial"; */
+    /* font-family: "Comic Sans MS", "Comic Sans", cursive; */
+    /* font-family: "Inter", sans-serif; */
+    font-family: "Roboto", sans-serif;
+}
+
+/*Set text color to white for labels*/
+QLabel {
+    color: #FFFFFF;
+}
+
+/* Keep the label on message boxes black */
+QMessageBox QLabel {
+    color: #000000;
+}
+
+/* Make QMessage Box have black text */
+QMessageBox {
+    color: black
+}
+
+QProgressBar{
+    color: #FFFFFF;
+}
+
+QListWidget {
+    background-color: #FFFFFF; /* Force background to white */
+    border: 1px solid #CCCCCC; /* Optional: Add a border around the list */
+}
+
+QListWidget::item {
+    border-bottom: 1px solid #CCCCCC; /* Add a line between list items */
+    padding: 10px; /* Make each item relatively large */
+    font-size: 14px; /* Increase font size for better visibility */
+}
+
+QListWidget::item:selected {
+    background-color: #B2DFDB; /* Force highlight color for selected item */
+    color: #004D40; /* Force text color for selected item */
+}
+
+QListWidget::item:hover {
+    background-color: #B2DFDB; /* Force highlight color for hovered item */
+    color: #004D40; /* Force text color for hovered item */
+}
+
+QPushButton {
+    background-color: white;
+    color: #4A7981;
+    border-radius: 2px;  /* Ensures the button is completely square */
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+QPushButton:hover {
+    background-color: #E0E0E0;
+    border: 2px solid #4A7981;  /* Change border color on hover for emphasis */
+}

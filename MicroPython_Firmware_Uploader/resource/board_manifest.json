@@ -1,0 +1,68 @@
+{
+    "IoT Node for LoRaWAN RP2350": {
+        "default_fw_name": "MICROPYTHON_IOTNODE_LORAWAN_RP2350.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun IoT Node LoRaWAN",
+        "image_name": "brd_iotnode_lorawan.jpg"
+    },
+    "IoT RedBoard ESP32": {
+        "default_fw_name": "MICROPYTHON_IOT_REDBOARD_ESP32.zip",
+        "processor_type": "ESP32",
+        "micropy_hw_board_name": "SparkFun IoT RedBoard ESP32",
+        "image_name": "brd_iot_redboard_esp32.jpg"
+    },
+    "IoT RedBoard RP2350": {
+        "default_fw_name": "MICROPYTHON_IOTREDBOARD_RP2350.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun IoT RedBoard RP2350",
+        "image_name": "brd_iot_redboard_rp2350.jpg"
+    },
+    "Pro Micro RP2040": {
+        "default_fw_name": "MICROPYTHON_PROMICRO.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun Pro Micro RP2040",
+        "image_name": "brd_pro_micro_rp240.jpg"
+    },
+    "Pro Micro RP2350": {
+        "default_fw_name": "MICROPYTHON_PROMICRO_RP2350.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun Pro Micro RP2350",
+        "image_name": "brd_pro_micro_rp2350.jpg"
+    },
+    "Teensy 4.0": {
+        "default_fw_name": "MICROPYTHON_TEENSY_40.hex",
+        "processor_type": "Teensy",
+        "micropy_hw_board_name": "Teensy 4.0",
+        "image_name": "brd_teensy40.jpg"
+    },
+    "Teensy 4.1": {
+        "default_fw_name": "MICROPYTHON_TEENSY_41.hex",
+        "processor_type": "Teensy",
+        "micropy_hw_board_name": "Teensy 4.1",
+        "image_name": "brd_teensy41.jpg"
+    },
+    "Thing Plus RP2040": {
+        "default_fw_name": "MICROPYTHON_THINGPLUS.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun Thing Plus RP2040",
+        "image_name": "brd_thing_plus_rp2040.jpg"
+    },
+    "Thing Plus RP2350": {
+        "default_fw_name": "MICROPYTHON_THINGPLUS_RP2350.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun Thing Plus RP2350",
+        "image_name": "brd_thing_plus_rp2350.jpg"
+    },
+    "XRP Controller": {
+        "default_fw_name": "MICROPYTHON_XRP_CONTROLLER.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun XRP Controller",
+        "image_name": "brd_xrp.jpg"
+    },
+    "XRP Controller Beta": {
+        "default_fw_name": "MICROPYTHON_XRP_CONTROLLER_BETA.uf2",
+        "processor_type": "RP2",
+        "micropy_hw_board_name": "SparkFun XRP Controller (Beta)",
+        "image_name": "brd_xrp_beta.jpg"
+    }
+}

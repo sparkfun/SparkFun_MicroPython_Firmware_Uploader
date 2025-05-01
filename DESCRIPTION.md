@@ -1,0 +1,1 @@
+The MicroPython Uploader is a simple to use GUI for updating the firmware on SparkFun MicroPython products.

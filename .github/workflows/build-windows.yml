@@ -1,0 +1,66 @@
+# This is a basic workflow to help you get started with Actions
+
+name: build-windows
+
+# Controls when the workflow will run
+on:
+  # this is a called workflow
+  workflow_call:
+    outputs:
+      build-file:
+        description: "The output of this build procsss"
+        value: ${{ jobs.windows-build-job.outputs.install-file }}
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # Build the installer on mac
+  windows-build-job:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+    
+    # Output
+    outputs:
+      install-file: ${{ steps.output-installer.outputs.filename }}
+      
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Setup python
+      - name: System Setup
+        run: |
+          pip install pyinstaller pyqt5 darkdetect argparse intelhex esptool mpremote requests psutil
+
+      # Build the installer.
+      - name: Build Windows Installer
+        shell: powershell
+        run: |
+          ren MicroPython_Firmware_Uploader\resource\teensy_loader_cli_windows.exe teensy_loader_cli.exe
+          $ESPTOOL_TARGETS = echo "$(pip show esptool | findstr "Location: ")"
+          $ESPTOOL_TARGETS = $ESPTOOL_TARGETS.Substring(10)
+          $ESPTOOL_TARGETS_1 = echo "${ESPTOOL_TARGETS}\esptool\targets\stub_flasher\1\*.json;.\esptool\targets\stub_flasher\1\"
+          $ESPTOOL_TARGETS_2 = echo "${ESPTOOL_TARGETS}\esptool\targets\stub_flasher\2\*.json;.\esptool\targets\stub_flasher\2\"
+          pyinstaller --onefile --clean --name MicroPythonUploader --noconsole --distpath=. --icon=MicroPython_Firmware_Uploader\resource\sfe_flame.ico --add-data="MicroPython_Firmware_Uploader\resource\*;resource\" --add-data="${ESPTOOL_TARGETS_1}" --add-data="${ESPTOOL_TARGETS_2}" MicroPython_Firmware_Upload.py
+                    
+      - name: Compress Installer
+        shell: powershell
+        run: |
+          $compress = @{
+            Path = ".\MicroPythonUploader.exe"
+            CompressionLevel = "Fastest"
+            DestinationPath = ".\MicroPythonUploader.win.zip"
+            }
+          Compress-Archive @compress
+        
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MicroPythonUploader.win.zip
+          path: MicroPythonUploader.win.zip
+          
+      # Use Windows powershell notation: $env:GITHUB_OUTPUT
+      - id: output-installer
+        run: echo "filename=MicroPythonUploader.win.zip" >> $env:GITHUB_OUTPUT
