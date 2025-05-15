@@ -27,18 +27,18 @@ QMessageBox QLabel {
     color: #000000;
 }
 
-/* Make QMessage Box have black text */
-QMessageBox {
-    color: black
-}
-
 QProgressBar{
     color: #FFFFFF;
 }
 
+QMessageBox {
+    color: black;
+    background-color: white;
+}
+
 QListWidget {
+    color: black;
     background-color: #FFFFFF; /* Force background to white */
-    border: 1px solid #CCCCCC; /* Optional: Add a border around the list */
 }
 
 QListWidget::item {
@@ -49,12 +49,10 @@ QListWidget::item {
 
 QListWidget::item:selected {
     background-color: #B2DFDB; /* Force highlight color for selected item */
-    color: #004D40; /* Force text color for selected item */
 }
 
 QListWidget::item:hover {
     background-color: #B2DFDB; /* Force highlight color for hovered item */
-    color: #004D40; /* Force text color for hovered item */
 }
 
 QPushButton {

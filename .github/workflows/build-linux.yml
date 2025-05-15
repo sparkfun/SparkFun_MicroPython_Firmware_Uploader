@@ -10,6 +10,9 @@ on:
       build-file:
         description: "The output of this build procsss"
         value: ${{ jobs.linux-build-job.outputs.install-file }}
+      teensy-loader:
+        description: "The teensy loader cli executable"
+        value: ${{ jobs.linux-build-job.outputs.teensy-loader }}
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -21,11 +24,14 @@ jobs:
     # Output
     outputs:
       install-file: ${{ steps.output-installer.outputs.filename }}
+      teensy-loader: ${{ steps.output-installer.outputs.teensy-loader }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+        with:
+          path: uploader
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -35,22 +41,50 @@ jobs:
         run: |
           pip install pyinstaller pyqt5 darkdetect argparse intelhex esptool mpremote requests psutil
 
+      # Fetch and build the teensy_loader_cli executable for Linux
+      - name: Fetch Teensy Loader CLI
+        uses: actions/checkout@v4
+        with:
+          repository: PaulStoffregen/teensy_loader_cli
+          path: teensy_loader_cli
+
+      # Build the teensy_loader_cli executable for Linux
+      # Move it to the correct location
+      # also copy it for use in a different job
+      - name: Build Teensy Loader CLI 
+        run: |
+          cd teensy_loader_cli
+          sudo apt-get update
+          sudo apt-get install -y libusb-dev
+          make OS=LINUX CC=gcc CFLAGS="-static -O2 -Wall" 
+          sudo mv teensy_loader_cli $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          sudo chmod +x $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          sudo cp $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe $GITHUB_WORKSPACE/teensy_loader_cli_linux
+          sudo chmod +x $GITHUB_WORKSPACE/teensy_loader_cli_linux
+
       # Build the installer.
       - name: Build Linux Installer
         run: |
-          sudo mv MicroPython_Firmware_Uploader/resource/teensy_loader_cli_linux MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
-          sudo chmod +x MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          cd $GITHUB_WORKSPACE/uploader/
           ESPTOOL_LOCATION=$(pip show esptool | grep "Location: " | cut -c 11- | tr -d '\n')
           ESPTOOL_TARGETS_1=$(echo "${ESPTOOL_LOCATION}/esptool/targets/stub_flasher/1/*.json:./esptool/targets/stub_flasher/1/")
           ESPTOOL_TARGETS_2=$(echo "${ESPTOOL_LOCATION}/esptool/targets/stub_flasher/2/*.json:./esptool/targets/stub_flasher/2/")
           pyinstaller --onefile --clean --name MicroPythonUploader --noconsole --distpath=. --icon=MicroPython_Firmware_Uploader/resource/sfe_flame.ico --add-data="MicroPython_Firmware_Uploader/resource/*:resource/" --add-data="${ESPTOOL_TARGETS_1}" --add-data="${ESPTOOL_TARGETS_2}" MicroPython_Firmware_Upload.py
           gzip MicroPythonUploader
-          mv MicroPythonUploader.gz MicroPythonUploader.linux.gz
+          mv MicroPythonUploader.gz $GITHUB_WORKSPACE/MicroPythonUploader.linux.gz
           
       - uses: actions/upload-artifact@v4
         with:
           name: MicroPythonUploader.linux.gz
           path: MicroPythonUploader.linux.gz
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: teensy_loader_cli_linux
+          path: teensy_loader_cli_linux
+
+      # We output our linux executable for publishing as well as the teensy_loader executable for use by the python package
       - id: output-installer
-        run: echo "filename=MicroPythonUploader.linux.gz" >> $GITHUB_OUTPUT
+        run: |
+          echo "filename=MicroPythonUploader.linux.gz" >> $GITHUB_OUTPUT
+          echo "teensy-loader=teensy_loader_cli_linux" >> $GITHUB_OUTPUT

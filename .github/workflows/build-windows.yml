@@ -10,6 +10,9 @@ on:
       build-file:
         description: "The output of this build procsss"
         value: ${{ jobs.windows-build-job.outputs.install-file }}
+      teensy-loader:
+        description: "The teensy loader cli executable"
+        value: ${{ jobs.windows-build-job.outputs.teensy-loader }}
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -21,11 +24,14 @@ jobs:
     # Output
     outputs:
       install-file: ${{ steps.output-installer.outputs.filename }}
+      teensy-loader: ${{ steps.output-installer.outputs.teensy-loader }}
       
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+        with:
+          path: uploader
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -35,16 +41,51 @@ jobs:
         run: |
           pip install pyinstaller pyqt5 darkdetect argparse intelhex esptool mpremote requests psutil
 
+      # Setup MSYS2 for windows make of the teensy_loader_cli executable
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: |
+            make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-headers
+        
+      - name: Fetch Teensy Loader CLI
+        uses: actions/checkout@v4
+        with:
+          repository: PaulStoffregen/teensy_loader_cli
+          path: teensy_loader_cli
+
+        # First we will have to cherry pick a commit that fixes the teensy_loader_cli build for msys2
+        # That looks for the HID headers in the correct path for MSYS2
+      - name: Patch Teensy Loader for MSYS2
+        run: |
+          cd teensy_loader_cli
+          git config --global user.name "Github Action"
+          git config --global user.email "fake@example.com"
+          git remote add hmaarrfk https://github.com/hmaarrfk/teensy_loader_cli.git
+          git fetch hmaarrfk
+          git cherry-pick aed28351f4ce05b557d90b5257ac7ca651bcb11e
+      
+      # Build the teensy_loader_cli executable for Windows. Then move it to the correct location "uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe"
+      - name: Build Teensy Loader CLI 
+        shell: msys2 {0}
+        run: |
+          cd teensy_loader_cli
+          make OS=WINDOWS CC=gcc CFLAGS="-static -O2 -Wall"
+          mv teensy_loader_cli.exe $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          cp $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe $GITHUB_WORKSPACE/teensy_loader_cli_windows
+
       # Build the installer.
       - name: Build Windows Installer
         shell: powershell
         run: |
-          ren MicroPython_Firmware_Uploader\resource\teensy_loader_cli_windows.exe teensy_loader_cli.exe
           $ESPTOOL_TARGETS = echo "$(pip show esptool | findstr "Location: ")"
           $ESPTOOL_TARGETS = $ESPTOOL_TARGETS.Substring(10)
           $ESPTOOL_TARGETS_1 = echo "${ESPTOOL_TARGETS}\esptool\targets\stub_flasher\1\*.json;.\esptool\targets\stub_flasher\1\"
           $ESPTOOL_TARGETS_2 = echo "${ESPTOOL_TARGETS}\esptool\targets\stub_flasher\2\*.json;.\esptool\targets\stub_flasher\2\"
-          pyinstaller --onefile --clean --name MicroPythonUploader --noconsole --distpath=. --icon=MicroPython_Firmware_Uploader\resource\sfe_flame.ico --add-data="MicroPython_Firmware_Uploader\resource\*;resource\" --add-data="${ESPTOOL_TARGETS_1}" --add-data="${ESPTOOL_TARGETS_2}" MicroPython_Firmware_Upload.py
+          pyinstaller --onefile --clean --name MicroPythonUploader --noconsole --distpath=. --icon=uploader\MicroPython_Firmware_Uploader\resource\sfe_flame.ico --add-data="uploader\MicroPython_Firmware_Uploader\resource\*;resource\" --add-data="${ESPTOOL_TARGETS_1}" --add-data="${ESPTOOL_TARGETS_2}" uploader\MicroPython_Firmware_Upload.py
                     
       - name: Compress Installer
         shell: powershell
@@ -60,7 +101,14 @@ jobs:
         with:
           name: MicroPythonUploader.win.zip
           path: MicroPythonUploader.win.zip
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: teensy_loader_cli_windows
+          path: teensy_loader_cli_windows
           
       # Use Windows powershell notation: $env:GITHUB_OUTPUT
       - id: output-installer
-        run: echo "filename=MicroPythonUploader.win.zip" >> $env:GITHUB_OUTPUT
+        run: |
+          echo "filename=MicroPythonUploader.win.zip" >> $env:GITHUB_OUTPUT
+          echo "teensy-loader=teensy_loader_cli_windows" >> $env:GITHUB_OUTPUT

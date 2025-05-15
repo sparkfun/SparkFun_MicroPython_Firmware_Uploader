@@ -6,6 +6,19 @@ name: build-python
 on:
   # this is a called workflow
   workflow_call:
+    inputs:
+      teensy-loader-linux-artifact:
+        description: "The teensy loader cli executable for linux artifact name"
+        required: true
+        type: string
+      teensy-loader-macos-artifact:
+        description: "The teensy loader cli executable for mac artifact name"
+        required: true
+        type: string
+      teensy-loader-windows-artifact:
+        description: "The teensy loader cli executable for windows artifact name"
+        required: true
+        type: string
     outputs:
       build-file:
         description: "The output of this build procsss"
@@ -27,6 +40,9 @@ jobs:
       install-package: ${{ steps.output-installer.outputs.packagename }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
+    # TODO: Need to make this dependent on the mac, linux, and windows build
+    # then need to copy all of the executables here. The python packaging will then have to intelligently select the 
+    # correct executable to use based on the OS
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
@@ -38,6 +54,36 @@ jobs:
       - name: System Setup
         run: |
           pip3 install setuptools 
+
+      # Download the teensy loader cli executable for linux
+      - name: Download Teensy Loader Linux
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.teensy-loader-linux-artifact }}
+      
+      # Download the teensy loader cli executable for mac
+      - name: Download Teensy Loader Mac
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.teensy-loader-macos-artifact }}
+
+      # Download the teensy loader cli executable for windows
+      - name: Download Teensy Loader Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.teensy-loader-windows-artifact }}
+
+      # Copy the teensy loader cli executable from the other builds
+      # Note: A hack here, since setup.py is run now and also when the user installs the package,
+      # we make linux the default (because this workflow is run on linux). The setup.py script will 
+      # rename the executable to teensy_loader_cli.exe for the other OSes at install time.
+      - name: Copy Teensy Loader CLI
+        run: |
+          echo "Copying Teensy Loader CLIs Within Python Build"
+          ls $GITHUB_WORKSPACE
+          cp $GITHUB_WORKSPACE/teensy_loader_cli_linux $GITHUB_WORKSPACE/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          cp $GITHUB_WORKSPACE/teensy_loader_cli_macos $GITHUB_WORKSPACE/MicroPython_Firmware_Uploader/resource/teensy_loader_cli_macos.exe
+          cp $GITHUB_WORKSPACE/teensy_loader_cli_windows $GITHUB_WORKSPACE/MicroPython_Firmware_Uploader/resource/teensy_loader_cli_windows.exe
 
       # Build the installer
       - name: Build Python Installer
