@@ -35,7 +35,7 @@ def resource_path( relativePath, basePath = _DEFAULT_RESOURCE_PATH ):
 # This class contains the name of the file, the name to display in the GUI, whether the file has qwiic drivers,
 # and the processor that we assume it is for
 class FirmwareFile(): 
-    def __init__(self, name: str, displayName: str, hasQwiic: bool, processor: str, device: str, mpHwName, manifest={}, resourceDir=_DEFAULT_RESOURCE_PATH) -> None:
+    def __init__(self, name: str, displayName: str, hasQwiic: bool, processor: str, device: str, mpHwName, deviceDescription=None, manifest={}, resourceDir=_DEFAULT_RESOURCE_PATH) -> None:
         self.name = name
         self.displayName = displayName
         self.hasQwiic = hasQwiic
@@ -45,12 +45,14 @@ class FirmwareFile():
         self.resourceDir = resourceDir
         self.manifest = manifest
         self.size = 0
+        self.deviceDescription = deviceDescription
+        self.releaseName = "Unkown Version"
 
     # Alternate constructor that takes the firmware file name and parses it to get the other features
     @classmethod
     def from_file(cls, firmwareFile: str, manifest: dir) -> 'FirmwareFile':
         name = firmwareFile
-        device = processor = mpHwName = None
+        device = processor = mpHwName = deviceDescription = None
         
         # Try to determine our values from the board manifest
         no_prefix_name = strip_alt_prefixes(name)
@@ -61,6 +63,7 @@ class FirmwareFile():
                 device = board
                 processor = manifest[board]["processor_type"]
                 mpHwName = manifest[board]["micropy_hw_board_name"]
+                deviceDescription = manifest[board]["description"]
 
         # If we didn't find the device in the manifest, we'll try to parse it from the name
         # Devine the device name from the firmware file name without the manifest
@@ -83,6 +86,9 @@ class FirmwareFile():
                 processor = "RP2"
             elif firmwareFile.endswith(".hex"):
                 processor = "Teensy"
+        
+        if deviceDescription is None:
+            deviceDescription = "The powerful " + device
 
         # Check if the file has qwiic drivers (if it is a minimal file)
         hasQwiic = not firmwareFile.startswith("MINIMAL")
@@ -92,7 +98,7 @@ class FirmwareFile():
         else:
             displayName = displayName + " (Minimal Build)"
 
-        return cls(name, displayName, hasQwiic, processor, device, mpHwName, manifest)
+        return cls(name, displayName, hasQwiic, processor, device, mpHwName, deviceDescription, manifest)
 
     def board_image_path(self) -> str:
         """Return the path to the image for the firmware file."""
@@ -110,6 +116,7 @@ class FirmwareFile():
     
     # TODO: In theory, we could make this more dynamic and pull the images down from github
     # from micropython-media repo in boards/board_name, but for now we'll just use the local images
+    # This makes it so that we can still use this if we are offline
     def fw_image_path(self) -> str:
         """
         Firmware images should be in resource directory with the name fw_<prefix_lower_case>.jpg.
@@ -128,12 +135,16 @@ class FirmwareFile():
     def description(self) -> str:
         # We'll build up a brief description of the file based on it's features
         # We can add more features later if we want to
-        descripiton = "SparkFun MicroPython firmware for the " + self.displayName + " board.\n"
+        description = "SparkFun MicroPython firmware for the " + self.device + " board.\n"
 
         if self.hasQwiic:
-            descripiton += "It has Qwiic drivers installed.\n"
+            description += "It already has our full suite of Qwiic device drivers installed meaning you can use them directly! Check out https://github.com/topics/sparkfun-python for our list of Qwiic drivers.\n"
         else:
-            descripiton += "It is a minimal build.\n"
+            description += "This is a basic build that saves space by not including any fancy bells or whistles.\n"
+        
+        description += "\nversion: " + self.releaseName.replace("_","-") + "\n"
+
+        return description
 """
 This class is used to download firmware from GitHub.
 
@@ -237,6 +248,29 @@ class GithubFirmware():
         
         return imgPaths
     
+    def get_all_board_icon_info(self) -> list:
+        """
+        Get all content needed to populate the board icon list.
+        For each board we need the name, description, and image path.
+
+        returns a list of tuples of the form (board_name, description, image_path)
+        """
+        if self.manifest is None:
+            return []
+
+        # Get the list of all board icon info
+        iconInfo = []
+        for board in self.manifest.keys():
+            try:
+                imgPath = self.manifest[board]["image_name"]
+                if os.path.exists(resource_path(imgPath, self.resourceDir)):
+                    iconInfo.append((board, self.manifest[board]["description"], resource_path(imgPath, self.resourceDir)))
+            except Exception as e:
+                # print("Error getting image path for board: ", board)
+                pass
+        
+        return iconInfo
+
     def get_basic_firmware_for_device(self, device: str) -> FirmwareFile:
         """
         Get the basic firmware for the device.
@@ -283,6 +317,7 @@ class GithubFirmware():
                         firmwareFile = FirmwareFile.from_file(asset["name"], self.manifest)
                         firmwareFile.size = asset["size"]
                         firmwareFile.resourceDir = self.resourceDir
+                        firmwareFile.releaseName = releaseName
                         
                         # Check if the device is in the manifest
                         if firmwareFile.device not in self.firmwareFiles[releaseName]:

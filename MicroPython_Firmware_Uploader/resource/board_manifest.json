@@ -3,66 +3,77 @@
         "default_fw_name": "MICROPYTHON_IOTNODE_LORAWAN_RP2350.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun IoT Node LoRaWAN",
-        "image_name": "brd_iotnode_lorawan.jpg"
+        "image_name": "brd_iotnode_lorawan.jpg",
+        "description": "Combining the Digi X-ON LoRaWAN system with the SparkFun Qwiic ecosystem, the SparkFun IoT Node for LoRaWAN board accelerates IoT development."
     },
     "IoT RedBoard ESP32": {
         "default_fw_name": "MICROPYTHON_IOT_REDBOARD_ESP32.zip",
         "processor_type": "ESP32",
         "micropy_hw_board_name": "SparkFun IoT RedBoard ESP32",
-        "image_name": "brd_iot_redboard_esp32.jpg"
+        "image_name": "brd_iot_redboard_esp32.jpg",
+        "description": "The IoT RedBoard is an ESP32 WROOM-equipped development board that has everything you need in an Arduino Uno with extra perks like USB-C, Qwiic, and more."
     },
     "IoT RedBoard RP2350": {
         "default_fw_name": "MICROPYTHON_IOTREDBOARD_RP2350.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun IoT RedBoard RP2350",
-        "image_name": "brd_iot_redboard_rp2350.jpg"
+        "image_name": "brd_iot_redboard_rp2350.jpg",
+        "description": "The RP2350 IoT RedBoard merges the RP2350 MCU and Raspberry Pi RM2 for wireless development in an Arduino R4 format."
     },
     "Pro Micro RP2040": {
         "default_fw_name": "MICROPYTHON_PROMICRO.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun Pro Micro RP2040",
-        "image_name": "brd_pro_micro_rp240.jpg"
+        "image_name": "brd_pro_micro_rp240.jpg",
+        "description": "The SparkFun Pro Micro RP2040 is a low-cost, high performance board with flexible digital interfaces featuring the Raspberry Pi Foundation's RP2040"
     },
     "Pro Micro RP2350": {
         "default_fw_name": "MICROPYTHON_PROMICRO_RP2350.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun Pro Micro RP2350",
-        "image_name": "brd_pro_micro_rp2350.jpg"
+        "image_name": "brd_pro_micro_rp2350.jpg",
+        "description": "The SparkFun RP2350 Pro Micro provides a powerful development platform in our compact Pro Micro form factor built around the RP2350 from Raspberry Pi."
     },
     "Teensy 4.0": {
         "default_fw_name": "MICROPYTHON_TEENSY_40.hex",
         "processor_type": "Teensy",
         "micropy_hw_board_name": "Teensy 4.0",
-        "image_name": "brd_teensy40.jpg"
+        "image_name": "brd_teensy40.jpg",
+        "description": "Teensy 4.0 is the latest Teensy, offering the fastest microcontroller and powerful peripherals in the Teensy 1.4 by 0.7 inch form factor."
     },
     "Teensy 4.1": {
         "default_fw_name": "MICROPYTHON_TEENSY_41.hex",
         "processor_type": "Teensy",
         "micropy_hw_board_name": "Teensy 4.1",
-        "image_name": "brd_teensy41.jpg"
+        "image_name": "brd_teensy41.jpg",
+        "description": "The Teensy 4.1 features an ARM Cortex-M7 processor at 600MHz, four times larger flash memory than the 4.0, and optional locations for more memory."
     },
     "Thing Plus RP2040": {
         "default_fw_name": "MICROPYTHON_THINGPLUS.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun Thing Plus RP2040",
-        "image_name": "brd_thing_plus_rp2040.jpg"
+        "image_name": "brd_thing_plus_rp2040.jpg",
+        "description": "The SparkFun Thing Plus - RP2040 is a low-cost, high performance board with flexible digital interfaces featuring the Raspberry Pi Foundation's RP2040."
     },
     "Thing Plus RP2350": {
         "default_fw_name": "MICROPYTHON_THINGPLUS_RP2350.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun Thing Plus RP2350",
-        "image_name": "brd_thing_plus_rp2350.jpg"
+        "image_name": "brd_thing_plus_rp2350.jpg",
+        "description": "The SparkFun RP2350 Thing Plus is a dynamic and powerful wireless development platform in the Thing Plus form factor."
     },
     "XRP Controller": {
         "default_fw_name": "MICROPYTHON_XRP_CONTROLLER.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun XRP Controller",
-        "image_name": "brd_xrp.jpg"
+        "image_name": "brd_xrp.jpg",
+        "description": "The XRP Controller, driven by an RP2350 dual-core processor, serves as the brain of your XRP robot, enabling complex functions and seamless control."
     },
     "XRP Controller Beta": {
         "default_fw_name": "MICROPYTHON_XRP_CONTROLLER_BETA.uf2",
         "processor_type": "RP2",
         "micropy_hw_board_name": "SparkFun XRP Controller (Beta)",
-        "image_name": "brd_xrp_beta.jpg"
+        "image_name": "brd_xrp_beta.jpg",
+        "description": "At the heart of the Experiential Robotics Platform (XRP) lies the powerful yet easy-to-use XRP Controller Board, the brains of the XRP."
     }
 }

@@ -14,7 +14,7 @@ from .au_act_esptool import AUxEsptoolDetectFlash, AUxEsptoolUploadFirmware, AUx
     AUxEsptoolEraseFlash
 from .mpremote_utils import MPRemoteSession
 from .au_act_rp2 import AUxRp2UploadRp2
-from .au_act_teensy import AUxTeensyUploadTeensy, TeensyProgress
+from .au_act_teensy import AUxTeensyUploadTeensy
 from .pyqt_utils import PopupListButton
 from .firmware_utils import FirmwareFile, resource_path, GithubFirmware
 
@@ -97,8 +97,6 @@ class MainWidget(QWidget):
         # ---------------------------- Variables/Objects ------------------
         self.flashSize = 0
 
-        self.teensyProgress = TeensyProgress() # Progress tracking for Teensy uploads. Its done in a different way for ESP32 and RP2...
-
         self.githubFirmware = GithubFirmware(_RELEASE_REPO, _BOARD_MANIFEST_FILE, _RESOURCE_DIRECTORY)
 
         if self.githubFirmware.offline:
@@ -144,13 +142,16 @@ class MainWidget(QWidget):
 
         # Populate the device button with the list of devices from the latest release
         # Add an automatic device detection option to the list of devices
-        self.device_button.addIconItem(_AUTO_DETECT_DECORATOR, "Automatically detect the device", resource_path("auto_detect.png", _RESOURCE_DIRECTORY))
+        self.device_button.addIconItem(_AUTO_DETECT_DECORATOR, "If your board is already running MicroPython, automatically selects board.", resource_path("auto_detect.png", _RESOURCE_DIRECTORY))
         
-        for device, imagePath in self.githubFirmware.get_all_board_image_paths():
-            self.device_button.addIconItem(device, "", imagePath)
+        for device, description, imagePath in self.githubFirmware.get_all_board_icon_info():
+            self.device_button.addIconItem(device, description, imagePath)
 
         # Add the local firmware option to the list of firmware files
-        self.firmware_button.addIconItem(_LOCAL_DECORATOR, "Local firmware file", resource_path("fw_local.png", _RESOURCE_DIRECTORY))
+        self.firmware_button.addIconItem(_LOCAL_DECORATOR, 
+                                         "Manually select a firmware file from your local machine.", 
+                                         resource_path("fw_local.png",_RESOURCE_DIRECTORY)
+                                        )
 
         # Attach the browse callback to the firmware button's textChanged signal
         self.firmware_button.textChanged.connect(self.on_fw_button_pressed)
@@ -296,13 +297,15 @@ class MainWidget(QWidget):
         
         self.firmware_button.items.clear()
         # Add the local firmware option to the list of firmware files
-        self.firmware_button.addIconItem(_LOCAL_DECORATOR, "Local firmware file", resource_path("fw_local.png", _RESOURCE_DIRECTORY))
+        self.firmware_button.addIconItem(_LOCAL_DECORATOR, 
+                                         "Manually select a firmware file from your local machine.", 
+                                         resource_path("fw_local.png",_RESOURCE_DIRECTORY)
+                                        )
 
         # Check the currently selected device item and update the firmware list accordingly
         self.firmware_button.setText(_FIRMWARE_CHOICE_DECORATOR)
         currentDevice = self.device_button.text()
         for fw in self.githubFirmware.deviceDict[currentDevice]:
-            # print("Adding firmware: ", fw.displayName, " for device: ", currentDevice)
             self.firmware_button.addIconItem(fw.displayName, fw.description(), fw.fw_image_path())
     
     def show_user_message(self, message: str, windowTitle: str, warning = False) -> None:
@@ -369,16 +372,8 @@ class MainWidget(QWidget):
         """Parse the progress message."""
         if self.is_esp32_upload():
             self.parse_esp32_progress(msg)
-        elif self.is_teensy_upload():
-            progress = self.teensyProgress.parse_message(msg)
-            # update the progress bar with the extracted percentage
-            if progress is not None:
-                if progress > 0 and progress < 100:
-                    # emit the progress signal to update the progress bar in the GUI
-                    self.sig_progress.emit(progress)
 
-        # rp2 progress is handled down a few levels while the firmware is being uploaded.
-        # this is because it is not a parsing of the output message but rather a manual tracking of the copy progress.
+        # rp2 progress and teensy progress are handled down a few levels while the firmware is being uploaded.
 
     @pyqtSlot(str)
     def appendMessage(self, msg: str) -> None:
@@ -432,6 +427,19 @@ class MainWidget(QWidget):
 
     @pyqtSlot(int)
     def on_progress(self, progress: int) -> None:
+        if progress < 0: 
+            # This indicates an error from the worker. We can handle differently for different platforms.
+            # For now, this will only happen when teensy times out waiting for the bootloader
+            if self.is_teensy_upload():
+                # Open a popup warning the user that the upload failed.
+                # Also end the upload and allow them to try again by re-enabling the back button (interface)
+                error_message = "Teensy upload timed out waiting for the bootloader to be ready. Please try again."
+                # If on MacOS, also inform user they need to check their "Input Monitoring" security permissions
+                if platform.system() == "Darwin":
+                    error_message += "\n\nIf you are on MacOS, please also check your \"Input Monitoring\" security permissions for this application."
+                self.show_user_message(error_message, "Teensy Upload Error", warning=True)
+                self.end_upload_with_message(error_message)
+
         self.progress_bar.setValue(progress)
 
     #--------------------------------------------------------------
@@ -465,15 +473,15 @@ class MainWidget(QWidget):
             self.writeMessage("Reset complete...")
             # Emit a signal to update the progress bar to 100%
             self.sig_progress.emit(100)
-            self.writeMessage("DONE: Firmware file copied to ESP32 device.\n")
+            self.writeMessage("DONE: ESP32 Upload Job Complete.\n")
             self.disable_interface(False)
 
         if action_type == AUxRp2UploadRp2.ACTION_ID:
-            self.end_upload_with_message("DONE: Firmware file copied to RP2 device.\n")
+            self.end_upload_with_message("DONE: RP2 Upload Job Complete.\n")
 
         if action_type == AUxTeensyUploadTeensy.ACTION_ID:
             self.sig_progress.emit(100)
-            self.end_upload_with_message("DONE: Firmware file copied to Teensy device.\n")
+            self.end_upload_with_message("DONE: Teensy Upload Job Complete\n")
 
     # --------------------------------------------------------------
     # on_port_combobox()
@@ -782,17 +790,10 @@ class MainWidget(QWidget):
         """End the upload with a message."""
         self.writeMessage(msg)
         self.cleanup_temp()
-        # self.switch_to_page_one()
         self.disable_interface(False)
-        # self.progress_bar.hide()
-        # self.progress_label.hide()
 
     def get_mpremote_session(self) -> MPRemoteSession:
         """Get an mpremote session for the current port."""
-        # portName = self.port_combobox.currentText() # This will be something like "USB Serial Device (COM3)" 
-        # portName = portName.split("(")[1].split(")")[0].strip() # This will be something like "COM3" and is what mpremote wants
-        # print("Port: ", self.port_button.text())
-
         # check if we are on mac or linux and if so, we need to add the /dev/ prefix to the port name
         if platform.system() == "Darwin" or platform.system().startswith("Linux"):
             portName = "/dev/" + self.port_button.text()
@@ -820,10 +821,17 @@ class MainWidget(QWidget):
         
         # Start an mpremote session for selected port
         mpr = self.get_mpremote_session()
+        
+        mpr_base_platform = None
+
+        # This means we have a valid mpremote session
+        if mpr is not None:
+            mpr_base_platform = mpr.get_base_platform()
+            self.writeMessage("MPRemote session validated. Platform: " + mpr_base_platform + "\n")
 
         # If we are able to use mpremote to enter bootloader mode, do so
         # Otherwise, prompt the user to press the correct button sequence to enter bootloader mode
-        if mpr is not None:
+        if mpr_base_platform == "rp2":
             self.writeMessage("Able to automatically enter bootloader mode...\n")
             mpr.enter_bootloader()
             self.writeMessage("Entering bootloader mode...\n")
@@ -905,12 +913,12 @@ class MainWidget(QWidget):
         theJob = AxJob(AUxTeensyUploadTeensy.ACTION_ID, {"loader": resource_path("teensy_loader_cli.exe", _RESOURCE_DIRECTORY),
                                                          "mcu":"imxrt1062", 
                                                          "board": boardName,
-                                                         "file": fwFile
+                                                         "file": fwFile,
+                                                         "size": self.get_current_firmware_file_size(),
                                                          })
         
         
-        # Show to progress bar and set it to 0. Reset our teensy progress bar and save the file size
-        self.teensyProgress.reset(self.get_current_firmware_file_size())
+        # Show progress bar and set it to 0.
         self.progress_bar_start("Teensy Upload Progress:")
 
         self._worker.add_job(theJob)
