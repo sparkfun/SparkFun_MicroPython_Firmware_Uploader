@@ -1,6 +1,6 @@
 import setuptools
 from codecs import open  # To use a consistent encoding
-from os import path
+from os import path, rename, chmod
 from platform import system, machine
 import subprocess
 import sys
@@ -32,6 +32,33 @@ here = path.abspath(path.dirname(__file__))
 # Get the long description from the relevant file
 with open(path.join(here, 'DESCRIPTION.md'), encoding='utf-8') as f:
     long_description = f.read()
+
+# Move the correct teensy loader for the platform to be called "teensy_loader_cli.exe" that will actually get installed with the package
+# setup.py actually runs twice when running pip install, so that is why we only rename the file if it exists and is not already renamed
+
+teensy_install_path = resource_path("teensy_loader_cli.exe")
+
+if system() == "Windows":
+    print("Windows Platform, installing teensy loader.")
+    # Rename the teensy loader for Windows
+    teensy_windows_path = resource_path("teensy_loader_cli_windows.exe")
+    if path.exists(teensy_windows_path):
+        rename(teensy_windows_path, teensy_install_path)
+elif system().startswith("Linux"):
+    # Already named correctly for Linux
+    print("Linux Platform, installing teensy loader.")
+    # Ensure the teensy loader is executable
+    chmod(teensy_install_path, 0o755)
+elif system() == "Darwin":
+    print("MacOS Platform, installing teensy loader.")
+    # Rename the teensy loader for MacOS
+    teensy_macos_path = resource_path("teensy_loader_cli_macos.exe")
+    if path.exists(teensy_macos_path):
+        rename(teensy_macos_path, teensy_install_path)
+    # Ensure the teensy loader is executable
+    chmod(teensy_install_path, 0o755)
+else:
+    print("Unknown OS. Teensy loader will not be supported for this installation.")
     
 install_deps = ['darkdetect', 'argparse', 'intelhex', 'esptool', 'mpremote', 'requests', 'psutil']
 
@@ -111,7 +138,7 @@ setuptools.setup(
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     package_data={
-        'MicroPython_Firmware_Uploader/resource': ['*.png', '*.jpg', '*.ico', '*.bin', '*.icns', '*.qss', '*.exe', '*.json'],
+        'MicroPython_Firmware_Uploader/resource': ['*.png', '*.jpg', '*.ico', '*.bin', '*.icns', '*.qss', '*.json', '*.exe'],
     },
 
 

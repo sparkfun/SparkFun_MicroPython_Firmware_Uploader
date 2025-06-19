@@ -23,13 +23,21 @@ jobs:
           
   call-linux-build:
     uses: ./.github/workflows/build-linux.yml
+  
+  # call-linux-arm-build:
+  #   uses: ./.github/workflows/build-linux-arm.yml
     
   call-windows-build:
     uses: ./.github/workflows/build-windows.yml
-    
+  
   call-python-build:
+    needs: [call-macos-build, call-linux-build, call-windows-build]
     uses: ./.github/workflows/build-python.yml
-
+    with:
+      teensy-loader-linux-artifact: ${{ needs.call-linux-build.outputs.teensy-loader }}
+      teensy-loader-macos-artifact: ${{ needs.call-macos-build.outputs.teensy-loader }}
+      teensy-loader-windows-artifact: ${{ needs.call-windows-build.outputs.teensy-loader }}
+ 
   # Using the outputs of the build
   deploy-builds: 
   
@@ -45,6 +53,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ${{ needs.call-linux-build.outputs.build-file }}
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: ${{ needs.call-linux-arm-build.outputs.build-file }}
       - uses: actions/download-artifact@v4
         with:
           name: ${{ needs.call-windows-build.outputs.build-file }}

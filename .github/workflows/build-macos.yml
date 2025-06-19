@@ -10,6 +10,9 @@ on:
       build-file:
         description: "The output of this build procsss"
         value: ${{ jobs.macos-build-job.outputs.install-file }}
+      teensy-loader:
+        description: "The teensy loader cli executable"
+        value: ${{ jobs.macos-build-job.outputs.teensy-loader }}
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -21,11 +24,14 @@ jobs:
     # Output
     outputs:
       install-file: ${{ steps.output-installer.outputs.filename }}
+      teensy-loader: ${{ steps.output-installer.outputs.teensy-loader }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+        with:
+          path: uploader
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -35,26 +41,55 @@ jobs:
         run: |
           pip install pyinstaller Pillow pyqt5 darkdetect argparse intelhex esptool mpremote requests psutil
           brew install create-dmg
+      
+      # Fetch and build the teensy_loader_cli executable for Mac
+      - name: Fetch Teensy Loader CLI
+        uses: actions/checkout@v4
+        with:
+          repository: PaulStoffregen/teensy_loader_cli
+          path: teensy_loader_cli
+
+      # Build the teensy_loader_cli executable for Linux
+      # Move it to the correct location
+      # also copy it for use in a different job
+      - name: Build Teensy Loader CLI 
+        run: |
+          pwd
+          cd teensy_loader_cli
+          make OS=MACOSX CC=gcc
+          sudo mv teensy_loader_cli $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          sudo chmod +x $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          sudo cp $GITHUB_WORKSPACE/uploader/MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe $GITHUB_WORKSPACE/teensy_loader_cli_macos
+          sudo chmod +x $GITHUB_WORKSPACE/teensy_loader_cli_macos
 
       # Build the installer.
       - name: Build Mac Installer
         run: |
-          sudo mv MicroPython_Firmware_Uploader/resource/teensy_loader_cli_mac MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
-          sudo chmod +x MicroPython_Firmware_Uploader/resource/teensy_loader_cli.exe
+          echo "PWD BEFORE: $(pwd)"
+          echo "DIRECTORY STRUCTURE BEFORE: $ls -r ${GITHUB_WORKSPACE}"
           ESPTOOL_LOCATION=$(pip show esptool | grep "Location: " | cut -c 11- | tr -d '\n')
           ESPTOOL_TARGETS_1=$(echo "${ESPTOOL_LOCATION}/esptool/targets/stub_flasher/1/*.json:./esptool/targets/stub_flasher/1/")
           ESPTOOL_TARGETS_2=$(echo "${ESPTOOL_LOCATION}/esptool/targets/stub_flasher/2/*.json:./esptool/targets/stub_flasher/2/")
-          pyinstaller --windowed -n MicroPythonUploader --noconsole --distpath=. --icon=MicroPython_Firmware_Uploader/resource/sfe_flame.ico --add-data="MicroPython_Firmware_Uploader/resource/*:resource/" --add-data="${ESPTOOL_TARGETS_1}" --add-data="${ESPTOOL_TARGETS_2}" MicroPython_Firmware_Upload.py
+          pyinstaller --windowed -n SparkFunMicroPython --noconsole --distpath=. --icon=uploader/MicroPython_Firmware_Uploader/resource/sfe_flame.ico --add-data="uploader/MicroPython_Firmware_Uploader/resource/*:resource/" --add-data="${ESPTOOL_TARGETS_1}" --add-data="${ESPTOOL_TARGETS_2}" uploader/MicroPython_Firmware_Upload.py
           mkdir tmp
-          mv "MicroPythonUploader.app" "tmp/"
-          create-dmg --volicon "MicroPython_Firmware_Uploader/resource/sparkdisk.icns" --background "MicroPython_Firmware_Uploader/resource/sfe_logo_med.png" --hide-extension "MicroPythonUploader.app" --icon "MicroPythonUploader.app" 100 100 --window-size 600 440 --app-drop-link 400 100 "MicroPythonUploader.dmg" "tmp/"
+          mv "SparkFunMicroPython.app" "tmp/"
+          create-dmg --volicon "uploader/MicroPython_Firmware_Uploader/resource/sparkdisk.icns" --background "uploader/MicroPython_Firmware_Uploader/resource/sfe_logo_med.png" --hide-extension "SparkFunMicroPython.app" --icon "SparkFunMicroPython.app" 100 100 --window-size 600 440 --app-drop-link 400 100 "SparkFunMicroPython.dmg" "tmp/"
+          echo "PWD AFTER: $(pwd)"
+          echo "DIRECTORY STRUCTURE AFTER: $ls -r ${GITHUB_WORKSPACE}"          
           
       - uses: actions/upload-artifact@v4
         with:
-          name: MicroPythonUploader.dmg
-          path: MicroPythonUploader.dmg
+          name: SparkFunMicroPython.dmg
+          path: SparkFunMicroPython.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: teensy_loader_cli_macos
+          path: teensy_loader_cli_macos
 
       - id: output-installer
-        run: echo "filename=MicroPythonUploader.dmg" >> $GITHUB_OUTPUT
+        run: |
+          echo "filename=SparkFunMicroPython.dmg" >> $GITHUB_OUTPUT
+          echo "teensy-loader=teensy_loader_cli_macos" >> $GITHUB_OUTPUT
         
         

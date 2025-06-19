@@ -242,3 +242,14 @@ class MPRemoteSession:
         if "with" in name:
             return name.split("with")[0].strip()
 
+    def get_base_platform(self) -> str:
+        """
+        Get the base platform of the device.
+        
+        Returns the base platform as a string or None if it cannot be determined.
+        The base platform is from os.uname()
+        """
+        try:
+            return self.exec_command_with_output("import os; print(os.uname().sysname)").strip()
+        except:
+            return None
