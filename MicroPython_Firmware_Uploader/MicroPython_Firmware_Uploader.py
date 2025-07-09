@@ -570,7 +570,7 @@ class MainWidget(QWidget):
             None,
             "Select Firmware to Upload",
             "",
-            "Firmware Files (*.zip *.uf2 *.hex *.elf);;All Files (*)",
+            "Firmware Files (*.zip *.bin *.uf2 *.hex *.elf);;All Files (*)",
             options=options)
         if fileName:
             # self.firmware_combobox.clear()
@@ -721,36 +721,39 @@ class MainWidget(QWidget):
 
     def do_upload_esp32(self, fwFile = None) -> None:
         """Upload the firmware to the ESP32."""
-        # Unzip the file to the temp directory
-        try:
-            with zipfile.ZipFile(fwFile, 'r') as zip_ref:
-                zip_ref.extractall(_TEMP_DIR)
-        except zipfile.BadZipFile:
-            self.end_upload_with_message("Provided ESP32 firmware is of wrong type.")
-            return
-        
-        # Make sure that we now have all three files we need:
-        #   - bootloader.bin
-        #   - partition-table.bin
-        #   - micropython.bin
-        # Get the name of the fwFile provided by taking the last part of the path (do this in a cross-platform way with os)
-        
-        fname = os.path.split(fwFile)[1]
-        unzipDir = os.path.join(_TEMP_DIR, fname.replace(".zip",""))
-        if not os.path.exists(unzipDir):
-            unzipDir = os.path.join(_TEMP_DIR, os.listdir(_TEMP_DIR)[0])
-        
-        for file in ["bootloader.bin", "partition-table.bin", "micropython.bin"]:
-            if not os.path.exists(os.path.join(unzipDir, file)):
-                self.end_upload_with_message(f"{os.path.join(unzipDir, file)} not found when checking esp32 zip.")
-                return
 
-        # For now we will always assume that the partitions table is 4MB. If future ESP32 devices are released with different flash sizes, we will need to update this code
-        # Ideally, we would also add a .txt file with all of the necessary flashing parameters by grepping it from the build output when releases are generated, but for now we'll assume default stuff...
-        thePartitionFileName = os.path.join(unzipDir, "partition-table.bin")
-        self.flashSize = 4
-        theBootloaderFileName = os.path.join(unzipDir, "bootloader.bin")
-        theFirmwareFileName = os.path.join(unzipDir, "micropython.bin")
+        isZipFileUpload = fwFile.endswith(".zip")
+        
+        if isZipFileUpload:
+            # Unzip the file to the temp directory
+            try:
+                with zipfile.ZipFile(fwFile, 'r') as zip_ref:
+                    zip_ref.extractall(_TEMP_DIR)
+            except zipfile.BadZipFile:
+                self.end_upload_with_message("Provided ESP32 firmware is of wrong type.")
+                return
+            
+            # Make sure that we now have all three files we need:
+            #   - bootloader.bin
+            #   - partition-table.bin
+            #   - micropython.bin
+            # Get the name of the fwFile provided by taking the last part of the path (do this in a cross-platform way with os)
+            fname = os.path.split(fwFile)[1]
+            unzipDir = os.path.join(_TEMP_DIR, fname.replace(".zip",""))
+            if not os.path.exists(unzipDir):
+                unzipDir = os.path.join(_TEMP_DIR, os.listdir(_TEMP_DIR)[0])
+            
+            for file in ["bootloader.bin", "partition-table.bin", "micropython.bin"]:
+                if not os.path.exists(os.path.join(unzipDir, file)):
+                    self.end_upload_with_message(f"{os.path.join(unzipDir, file)} not found when checking esp32 zip.")
+                    return
+
+            # For now we will always assume that the partitions table is 4MB. If future ESP32 devices are released with different flash sizes, we will need to update this code
+            # Ideally, we would also add a .txt file with all of the necessary flashing parameters by grepping it from the build output when releases are generated, but for now we'll assume default stuff...
+            thePartitionFileName = os.path.join(unzipDir, "partition-table.bin")
+            self.flashSize = 4
+            theBootloaderFileName = os.path.join(unzipDir, "bootloader.bin")
+            theFirmwareFileName = os.path.join(unzipDir, "micropython.bin")
 
         sleep(1.0) # Don't know why this was here, but hell hath no fury like a sleep removed...
         self.writeMessage("Uploading firmware\n")
@@ -767,9 +770,14 @@ class MainWidget(QWidget):
         command.extend(["--port",self.port])
         command.extend(["--baud",baud])
         command.extend(["--before","default_reset","--after","hard_reset","write_flash","--flash_mode","dio","--flash_freq","40m","--flash_size","4MB"])
-        command.extend(["0x1000",theBootloaderFileName])
-        command.extend(["0x8000",thePartitionFileName])
-        command.extend(["0x10000",theFirmwareFileName])
+        
+        if isZipFileUpload:
+            command.extend(["0x1000",theBootloaderFileName])
+            command.extend(["0x8000",thePartitionFileName])
+            command.extend(["0x10000",theFirmwareFileName])
+        else:
+            # If we are not uploading a zip file, we assume the user has supplied a valid .bin file to flash directly at 0x1000
+            command.extend(["0x1000", fwFile])
 
         #print("python esptool.py %s\n\n" % " ".join(command)) # Useful for debugging - cut and paste into a command prompt
 
@@ -934,7 +942,7 @@ class MainWidget(QWidget):
             # Check the processor variable in the primary firmware file for the device
             return self.githubFirmware.get_basic_firmware_for_device(self.device_button.text()).processor == "ESP32"
         except:
-            return self.theFileName.endswith(".zip")
+            return self.theFileName.endswith(".zip") or self.theFileName.endswith(".bin")
     
     def is_rp2_upload(self) -> bool:
         """Check if the upload is for RP2."""
