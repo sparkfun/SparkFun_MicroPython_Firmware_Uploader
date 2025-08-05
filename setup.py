@@ -60,7 +60,7 @@ elif system() == "Darwin":
 else:
     print("Unknown OS. Teensy loader will not be supported for this installation.")
     
-install_deps = ['darkdetect', 'argparse', 'intelhex', 'esptool', 'mpremote', 'requests', 'psutil']
+install_deps = ['darkdetect', 'argparse', 'intelhex', 'esptool==4.8.1', 'mpremote', 'requests', 'psutil']
 
 # Raspberry Pi needs python3-pyqt5 and python3-pyqt5.qtserialport
 # which can only be installed with apt-get

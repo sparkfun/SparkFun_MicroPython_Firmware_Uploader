@@ -39,7 +39,7 @@ jobs:
       # Setup python
       - name: System Setup
         run: |
-          pip install pyinstaller pyqt5 darkdetect argparse intelhex esptool mpremote requests psutil
+          pip install pyinstaller pyqt5 darkdetect argparse intelhex esptool==4.8.1 mpremote requests psutil
 
       # Fetch and build the teensy_loader_cli executable for Linux
       - name: Fetch Teensy Loader CLI
